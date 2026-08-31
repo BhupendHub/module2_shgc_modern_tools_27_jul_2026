@@ -1,0 +1,124 @@
+pip install streamlit  pyserial
+Imp:
+To see description of some installed library [Test Q]
+pip show  streamlit
+pip show pyserial
+
+Updating Existing Library
+pip install -U  streamlit
+
+Removing a Library:
+pip  uninstall  streamlit
+
+Installing Libraries mentioned inside requirements.txt  [Very Imp - Test Q]
+pip install  -r  requirements.txt	
+
+Creating requirements.txt based on our Project needs  [Very Imp - Test Q]
+pip  freeze  > requirements.txt		[  > redirection - Overwrites existing file]
+								[ >> redirection - Append (Add to End) No Overwrite]
+
+import streamlit as st
+import serial
+import threading
+import time
+
+PORT = "COM4"  # Adjust to your actual Arduino Port
+BAUD_RATE = 96___
+
+st.set_page_con____(page_title="DHT11 Live Monitor", page_icon="🌡️", layout="centered")
+st.title("🌡️ Arduino DHT11 Sensor Dashboard")
+
+# 1. Create a simple container class to store data safely across threads
+class SensorDataHol___:   #PascalCase Notation - IT Industry => class
+    def   __init__(self):   #Initializer Fn (C++: Constructor) 
+        self.humidity = "N/A"    #self - refers to current object the class (Test)
+        self.temperature = "N/A"  #C++, Java - we use "this" keyword
+
+# 2. Instantiate and cache the container so both the thread and UI point to the same memory
+@st.cache_resource      # @ is known as "Decorator" Fn (Java: Annotation)
+_____   get_shared_data():   #Execute ones and remains in Memory (Fn Definition)
+    return SensorDataHolder() 
+
+shared_data = get_shared_data()  #Fn Call
+#1st Year: OS - Process Management - Light weight Process (Thread)
+# 3. Background thread worker (To modifies the shared object)
+def serial_worker(port, baud, data_container):
+    try:
+        ser = _____.Serial(port, baud, timeout=1.0)
+        time.sleep(2)  # Wait for Arduino to reset
+        while True:
+            if ser.is_open:
+                line = ser.read_____().decode('utf-8').strip() #Read value form Arduino print(h)print(,)print(t)
+                if line and "ERROR" not in line:
+                    parts = line.split(',')  #Split humidity and temperature
+                    if len(parts) == 2:
+                        # Safely update the shared standard Python object
+                        data_container.hum______ = f"{parts[0]} %"  #index 0
+                        data_container.temper____ = f"{parts[1]} °C"  #index 1
+            time.sleep(0.1)  # 1/10 second - Since 1 means 1 second
+    except Exception:
+        data_container.humidity = "Conn Error"
+        data_container.temperature = "Conn Error"
+
+# 4. Start the background thread exactly once
+@st.cache_resource
+def start_serial_thread(port, baud):
+    thread = threading.______(
+        target=serial_worker,    #Fn to Call by the Thread
+        args=(port, baud, shared_data),   #Arguments required to the fn
+        daemon=True    #Test Q: Daemon means Background Process/Thread
+    )
+    thread.start()  #Start the Thread
+    return thread
+
+start_serial_thread(PO____, BAUD_RATE)  #Fn Call
+
+# 5. Smooth, non-blinking Fragment for UI updates
+@st.fragment(run_every="______")  #New Concept (Refer Page 47, Pt 76)
+def live_monitor_ui():
+    metric_col1, metric_col2 = st.columns(2)
+    
+    # UI safely reads live values out of the shared object instantly
+    with metric_col1:
+        st.metric(label="Relative Humidity", value=shared_data.humidity)
+    with metric_col2:
+        st.metric(label="Temperature", value=shared_data.temperature)
+
+    # Pressing this instantly triggers a clean execution block refresh
+    st.button("🔄 Read Again")  #To Refresh Fragment
+
+# Run the UI block
+live_monitor_ui()   #Fn Call
+
+Arduino Code:
+#include "_______.h"
+
+#define DHTPIN   ____  
+#define DHTTYPE   __________  
+
+DHT dht(DHTPIN, DHTTYPE);
+
+void setup() {
+  Serial.begin(9600);
+  ___.begin();
+}
+
+void loop() {
+  // Read sensor values
+  float humidity = dht._____Humidity();
+  float temperature = dht.readTemperature();
+
+  // If readings fail, send an error flag
+  if (isnan(humidity) || is_____(temperature)) {
+    Serial.println("ERROR");
+  } else {
+    // Print in standard comma-separated format: humidity,temperature
+    Serial.print(humidity);
+    Serial.print(",");
+    Serial.println(temperature);
+  }
+
+  // 10-second delay between measurements
+  delay(________); 
+}
+
